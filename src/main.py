@@ -1,5 +1,6 @@
 import requests
 import json
+import boto3
 from bs4 import BeautifulSoup
 
 routes = {
@@ -36,5 +37,8 @@ for route in routes:
       
 json_data = json.dumps(schedule, indent = 4)
 
-with open("data.json", "w") as outfile:
+with open("temp/data.json", "w") as outfile:
   outfile.write(json_data)
+
+s3 = boto3.client("s3")
+s3.upload_file(Filename="data.json", Bucket="ryde-schedule", Key="schedule.json", ExtraArgs={'ACL':'public-read'})
