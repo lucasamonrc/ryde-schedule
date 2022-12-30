@@ -38,11 +38,9 @@ def lambda_handler(event, context):
         
   json_data = json.dumps(schedule, indent = 4)
 
-  with open("temp/data.json", "w") as outfile:
-    outfile.write(json_data)
-
   s3 = boto3.client("s3")
-  s3.upload_file(Filename="data.json", Bucket="ryde-schedule", Key="schedule.json", ExtraArgs={'ACL':'public-read'})
+  s3Obj = s3.Object("ryde-schedule", "schedule.json")
+  s3Obj.put(bytes(json_data).encode("UTF-8"))
 
   return {
     'statusCode': 200,
