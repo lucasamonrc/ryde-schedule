@@ -39,10 +39,11 @@ def lambda_handler(event, context):
   json_data = json.dumps(schedule, indent = 4)
 
   s3 = boto3.client("s3")
-  s3Obj = s3.Object("ryde-schedule", "schedule.json")
-  s3Obj.put(bytes(json_data).encode("UTF-8"))
-
+  s3.put_object(Body=json_data, Bucket="ryde-schedule", Key="schedule.json")
+  
   return {
     'statusCode': 200,
     'body': json.dumps('Scraped successfully')
   }
+
+lambda_handler(None, None)
