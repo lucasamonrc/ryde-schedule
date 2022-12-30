@@ -39,7 +39,7 @@ def lambda_handler(event, context):
   json_data = json.dumps(schedule, indent = 4)
 
   s3 = boto3.client("s3")
-  s3.put_object(Body=json_data, Bucket="ryde-schedule", Key="schedule.json")
+  s3.put_object(Body=json_data, Bucket="ryde-schedule", Key="schedule.json", ACL="public-read")
   
   return {
     'statusCode': 200,
