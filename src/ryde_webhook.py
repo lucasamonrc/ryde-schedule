@@ -31,7 +31,7 @@ def process(body):
 
   schedule = requests.get(SCHEDULE_URL).json()
 
-  results = event["body"].lower().split("%3A")
+  results = body.lower().split("%3A")
   station, route = results[0], None if len(results) < 2 else results[1]
 
   if station not in schedule:
