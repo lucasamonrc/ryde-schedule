@@ -2,6 +2,29 @@ import requests
 import json
 import boto3
 from bs4 import BeautifulSoup
+from datetime import datetime
+
+def normalize_hours(hours):
+  normalized_hours = []
+  is_pm = False
+
+  for hour in hours:
+    if hour == '-':
+      normalized_hours.append(hour)
+      continue
+    
+    hour = hour.replace(" am", "").replace(" pm", "")
+    hours, minutes = hour.split(":")
+
+    if int(hours) == 12:
+      is_pm = True
+
+    if is_pm and int(hours) != 12:
+      hours = str(int(hours) + 12)
+    
+    normalized_hours.append(f"{hours}:{minutes}")
+  
+  return normalized_hours
 
 def lambda_handler(event, context):
   ROUTES = {
@@ -43,9 +66,13 @@ def lambda_handler(event, context):
       if station not in schedule:
         schedule[station] = {}
 
-      schedule[station][route] = scrapedData[route][point]  
+      schedule[station][route] = scrapedData[route][point]
 
-  json_data = json.dumps(schedule, indent = 4)
+  for station in schedule:
+    for route in schedule[station]:
+      schedule[station][route] = normalize_hours(schedule[station][route])
+
+  json_data = json.dumps(schedule, indent=2)
 
   s3 = boto3.client("s3")
   s3.put_object(Body=json_data, Bucket="ryde-schedule", Key="schedule.json", ACL="public-read")
