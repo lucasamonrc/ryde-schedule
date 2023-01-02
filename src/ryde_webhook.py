@@ -7,22 +7,28 @@ SCHEDULE_URL = "https://ryde-schedule.s3.us-west-2.amazonaws.com/schedule.json"
 
 def get_current_time():
   now = datetime.now()
-  return now.strftime("%I:%M %p").lower()
+  return now.strftime("%H:%M").lower()
 
 def find_next_hour(hours, current_hour):
-  current_hour = current_hour.lower()
-  next_hour = None
-  
   for hour in hours:
-    hour = hour.lower()
+    if hour == '-':
+      continue
+
+    if hour[1] == ':':
+      hour = '0' + hour
 
     if hour > current_hour:
-        next_hour = hour
-        break
-        
-  return next_hour
+      return hour
 
+  return 'There are no buses coming.'
+  
 def lambda_handler(event, context):
+  now = get_current_time()
+  today = datetime.today()
+
+  if today.weekday() in [5,6] or today.month in range(5, 9):
+    return 'No services today'
+
   schedule = requests.get(SCHEDULE_URL).json()
 
   results = event["body"].lower().split(":")
@@ -31,23 +37,21 @@ def lambda_handler(event, context):
   if station not in schedule:
     print('Invalid station name. Please try again using one of the stations below:')
     out = '\n'.join(['- ' + key for key in schedule])
-    print(out)  
-    return
+    return out
 
   stationSchedule = schedule[station]
-  now = get_current_time()
 
   departures = {}
-  for route in stationSchedule:
-    departures[route] = find_next_hour(stationSchedule[route], now)
+  for _route in stationSchedule:
+    departures[_route] = find_next_hour(stationSchedule[_route], now)
 
-  print(departures)
+  if route:
+    return departures[route]
 
-  
+  return departures
 
-  
 event = {}
 event["body"] = "moa"
 
-
-lambda_handler(event, None)
+res = lambda_handler(event, None)
+print(res)
