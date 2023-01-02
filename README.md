@@ -12,7 +12,7 @@ Inspired by the transit system of Porto and Lisbon from the time I lived in Port
 
 ## 💻 Project Demo
 
-The Screenshots below are simply concepts and do not represent the final design of the service:
+The Screenshots below represent the two use cases, checking all departure times for a particular station and the next departure time for a route in a particular station:
 
 <p float="left" align="center">
   <img src="https://iili.io/HIu0O2j.png" width="35%" />
