@@ -22,7 +22,7 @@ def find_next_hour(hours, current_hour):
 
   return 'There are no buses coming.'
   
-def lambda_handler(event, context):
+def process(body):
   now = get_current_time()
   today = datetime.today()
 
@@ -31,7 +31,7 @@ def lambda_handler(event, context):
 
   schedule = requests.get(SCHEDULE_URL).json()
 
-  results = event["body"].lower().split(":")
+  results = event["body"].lower().split("%3A")
   station, route = results[0], None if len(results) < 2 else results[1]
 
   if station not in schedule:
@@ -46,12 +46,12 @@ def lambda_handler(event, context):
     departures[_route] = find_next_hour(stationSchedule[_route], now)
 
   if route:
-    return departures[route]
+    return departures
 
   return departures
 
-event = {}
-event["body"] = "moa"
-
-res = lambda_handler(event, None)
-print(res)
+def lambda_handler(event, context):
+  body = event['Body'].replace("+", " ").strip()
+  reply = process(body)
+  return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
+          f"<Response><Message><Body>{reply}</Body></Message></Response>"
