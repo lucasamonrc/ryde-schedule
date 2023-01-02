@@ -12,7 +12,7 @@ mv src/ryde_scrape.zip out/ryde_scrape.zip
 # Build ryde_webhook
 cd src
 zip ryde_webhook.zip ryde_webhook.py
-pip3 install --target ./package datetime
+pip3 install --target ./package requests datetime
 cd package
 zip -r ../ryde_webhook.zip .
 cd ..
