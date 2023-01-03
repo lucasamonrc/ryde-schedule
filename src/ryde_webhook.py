@@ -58,5 +58,3 @@ def lambda_handler(event, context):
   reply = process(body)
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
           f"<Response><Message><Body>{reply}</Body></Message></Response>"
-
-print(process("moa"))
