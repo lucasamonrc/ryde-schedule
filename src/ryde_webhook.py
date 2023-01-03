@@ -46,7 +46,7 @@ def process(body):
   out = 'Next departure times at this station:\n'
   for _route in stationSchedule:
     departures[_route] = find_next_hour(stationSchedule[_route], now)
-    out =+ f"- {_route}: ${departures[_route]}"
+    out += f"- {_route}: {departures[_route]}\n"
 
   if route:
     return departures[route]
@@ -58,3 +58,5 @@ def lambda_handler(event, context):
   reply = process(body)
   return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"\
           f"<Response><Message><Body>{reply}</Body></Message></Response>"
+
+print(process("moa"))
