@@ -1,35 +1,93 @@
+<div align="center">
+
 # 🚌 The Ryde Schedule
 
-A serverless function triggered by an SMS that scrapes BYU student movement website and returns the departure time of the next BYU Ryde shuttle for a particular route.
+**Text your stop, get the next shuttle.** A serverless SMS bot that scraped BYU's shuttle schedules and told
+students when the next Ryde was leaving.
 
-## 🎯 Justification
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![AWS Lambda](https://img.shields.io/badge/AWS%20Lambda-FF9900?logo=awslambda&logoColor=white)
+![Amazon S3](https://img.shields.io/badge/Amazon%20S3-569A31?logo=amazons3&logoColor=white)
+![Twilio](https://img.shields.io/badge/Twilio-F22F46?logo=twilio&logoColor=white)
+![Status](https://img.shields.io/badge/status-retired%20(2023)-lightgrey)
 
-[BYU](https://www.byu.edu) has a great free shuttle service that can transport students efficiently across campus and/or on-campus housing. It connects BYU grounds through 7 different routes as described in their [website](https://studentmovement.byu.edu). Being a frequent user of the BYU Ryde (the name of the shuttle service), I wasted a lot of time opening up an internet browser on my phone, typing the URL, navigating to my route's page, and then parsing with my eyes a fairly long list with all of the times listed to try to figure out when the next shuttle was departing.
-
-Inspired by the transit system of Porto and Lisbon from the time I lived in Portugal, I decided to write a simple service that can scrape Ryde's website and then simply inform the time the next shuttle will depart each time I text my current stop and route to the service.
-
-## 💻 Project Demo
-
-The Screenshots below represent the two use cases, checking all departure times for a particular station and the next departure time for a route in a particular station:
-
-<p float="left" align="center">
-  <img src="https://iili.io/HIu0O2j.png" width="35%" />
-  <img src="https://iili.io/HIu0wrb.png" width="35%" /> 
+<p>
+  <img src=".github/assets/sms-station.png" width="32%" alt="All departures for a station" />
+  &nbsp;&nbsp;
+  <img src=".github/assets/sms-route.png" width="32%" alt="Next departure for one route" />
 </p>
 
-## 🚀 Technology Stack
+</div>
 
-- [Python](https://www.python.org/)
-- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/)
-- [AWS Lambda](https://aws.amazon.com/lambda/)
-- [Twilio](https://www.twilio.com/)
+> [!NOTE]
+> This was a personal project from my time at BYU (2022–2023). The live service has been shut down, and the
+> code is kept here as a showcase.
 
-Python is the language of choice for writing these scripts and the cloud functions that will be hosted on AWS Lambda. BeautifulSoup is enough for parsing a simple HTML document and extracting the needed data. Twilio was the obvious choice for a simple and flexible communication service and API.
+## Why
 
-### Trade-offs Considered
+[BYU](https://www.byu.edu) runs a free shuttle service, the **Ryde**, with seven routes connecting campus and
+student housing. Checking the next departure meant opening a browser, finding the route's page and scanning a
+long list of times.
 
-Choosing BeautifulSoup over Selenium was the right choice for this project because the scraped webpages are fairly simple and the scraper itself does not need to interact with the UI of the website. Selenium is powerful but adds the overhead of configuring volumes with AWS lambda to store the necessary browser drivers, which wasn't needed for this use case.
+I had lived in Portugal, where Porto's and Lisbon's transit systems tell you the next departure by text, so I
+built the same thing for the Ryde.
 
-## 🧑‍💻 Authors
+## How it works
 
-- Lucas Castro ([@lucasamonrc](https://github.com/lucasamonrc)) | [lucasamonrc.dev](https://lucasamonrc.dev)
+```
+                    ┌──────────────────┐   scrape route pages   ┌───────────────────────┐
+  periodic ────────▶│  ryde_scrape λ   │ ──────────────────────▶│ studentmovement.byu.edu│
+                    │ (BeautifulSoup)  │                        └───────────────────────┘
+                    └────────┬─────────┘
+                             │ schedule.json
+                             ▼
+                        ┌─────────┐
+                        │   S3    │
+                        └────┬────┘
+                             │ read
+   SMS "<station>: <route>"  ▼
+  ┌──────┐   webhook   ┌──────────────────┐   TwiML reply   ┌──────┐
+  │Twilio│ ──────────▶ │  ryde_webhook λ  │ ──────────────▶ │Twilio│ ──▶ 📱
+  └──────┘             └──────────────────┘                 └──────┘
+```
+
+1. **`ryde_scrape`** runs periodically. It scrapes each route page, normalizes the times into one
+   station → route → departures map, and publishes it to S3 as `schedule.json`.
+2. **`ryde_webhook`** sits behind a Twilio phone number. It parses the incoming text, works out the next
+   departure in Mountain Time, and replies with TwiML.
+
+### Usage
+
+| Text                  | Reply                                                |
+| --------------------- | ---------------------------------------------------- |
+| `<station>`           | The next departure for every route at that station   |
+| `<station>: <route>`  | Just the next departure for that route (e.g. `wyview`) |
+| anything unrecognized | The list of valid station names                      |
+
+It also knows when the Ryde doesn't run: weekends and the summer break.
+
+## Tech choices
+
+- **Python + BeautifulSoup** instead of Selenium. The pages are static HTML, so a headless browser (and the
+  extra work of fitting browser drivers into Lambda) wasn't needed.
+- **Two Lambdas plus S3** keep the SMS path fast and cheap. Scraping happens out of band, and the webhook only
+  reads a small JSON file.
+- **Twilio** for SMS: easy webhooks and TwiML responses.
+
+## Build
+
+`build.sh` packages each function with its dependencies into a Lambda-ready zip in `out/`:
+
+```bash
+./build.sh   # → out/ryde_scrape.zip, out/ryde_webhook.zip
+```
+
+```
+src/ryde_scrape.py    scraper → S3
+src/ryde_webhook.py   Twilio SMS webhook
+build.sh              packages both Lambdas
+```
+
+---
+
+Built by [Lucas Castro](https://lucasacastro.com) ([@lucasamonrc](https://github.com/lucasamonrc)).
